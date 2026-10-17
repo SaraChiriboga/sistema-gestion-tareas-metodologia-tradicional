@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow Pro - Sistema de Gestión de Tareas Colaborativas</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
+</head>
+<body>
+
+  <!-- Reminders Banner (HU18: Recordatorios automáticos) -->
+  <div id="remindersBanner" class="reminders-banner" style="display: none;"></div>
+
+  <div class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-logo-icon">🚀</span>
+        <div class="sidebar-brand">
+          <h1 data-i18n="appTitle">TaskFlow Pro</h1>
+          <small data-i18n="appSubtitle">Gestión Ágil y Colaborativa</small>
+        </div>
+      </div>
+
+      <div class="sidebar-body">
+        <!-- Projects Section (HU11) -->
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">
+            <span data-i18n="navProjects">Proyectos</span>
+            <button 
+              class="btn-icon-xs" 
+              title="Crear nuevo proyecto"
+              onclick="window.TaskApp.openProjectModal()"
+            >
+              ➕
+            </button>
+          </div>
+          <div id="sidebarProjectsList" class="sidebar-projects-list">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Quick Actions & Tools -->
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Herramientas</div>
+          <div class="sidebar-projects-list">
+            <button class="project-item" onclick="window.TaskApp.openRolesModal()">
+              <span class="project-item-icon">🛡️</span>
+              <div class="project-item-info">
+                <span class="project-item-name" data-i18n="manageRoles">Gestión de Roles</span>
+                <small class="project-item-count">Permisos de usuarios (HU15)</small>
+              </div>
+            </button>
+
+            <button class="project-item" onclick="window.exportManager.exportCsv()">
+              <span class="project-item-icon">📊</span>
+              <div class="project-item-info">
+                <span class="project-item-name" data-i18n="exportExcel">Exportar a Excel</span>
+                <small class="project-item-count">Descarga CSV UTF-8 (HU14)</small>
+              </div>
+            </button>
+
+            <button class="project-item" onclick="window.premiumManager.openModal()">
+              <span class="project-item-icon">⭐</span>
+              <div class="project-item-info">
+                <span class="project-item-name" data-i18n="premiumBanner">Plan Pro Premium</span>
+                <small class="project-item-count">Pagos y mejoras (HU20)</small>
+              </div>
+            </button>
+
+            <button class="project-item" onclick="window.tutorialManager.start()">
+              <span class="project-item-icon">💡</span>
+              <div class="project-item-info">
+                <span class="project-item-name" data-i18n="navTutorial">Guía Interactiva</span>
+                <small class="project-item-count">Tour para nuevos usuarios (HU19)</small>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="btn btn-secondary btn-sm btn-block" onclick="window.dataStore.resetToDefaults()">
+          🔄 Restablecer Datos Demo
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-wrapper">
+      <!-- Top Header -->
+      <header class="top-header">
+        <div class="header-left">
+          <!-- Active Project Pill -->
+          <div id="headerActiveProject" class="project-pill" id="projectSelector">
+            <span class="project-pill-icon">🛒</span>
+            <span class="project-pill-name">Plataforma E-Commerce 2.0</span>
+          </div>
+
+          <!-- View Switcher Tabs -->
+          <nav class="view-tabs">
+            <button id="tabKanban" class="view-tab active">
+              <span>📋</span> <span data-i18n="navKanban">Tablero Kanban</span>
+            </button>
+            <button id="tabDashboard" class="view-tab">
+              <span>📊</span> <span data-i18n="navDashboard">Dashboard & Métricas</span>
+            </button>
+            <button id="tabList" class="view-tab">
+              <span>📄</span> <span data-i18n="navListView">Vista de Lista</span>
+            </button>
+          </nav>
+        </div>
+
+        <div class="header-right">
+          <!-- New Task Button -->
+          <button id="btnNewTask" class="btn btn-primary btn-sm" onclick="window.TaskApp.openTaskModal()">
+            <span>➕</span> <span data-i18n="addTask">Añadir Tarea</span>
+          </button>
+
+          <!-- Language Switcher (HU12) -->
+          <button id="btnLangToggle" class="btn btn-secondary btn-sm" title="Cambiar Idioma">
+            🇪🇸 ES
+          </button>
+
+          <!-- Theme Toggle (HU17) -->
+          <button id="btnThemeToggle" class="btn-icon" title="Modo Oscuro / Claro">
+            🌙
+          </button>
+
+          <!-- Notifications Bell (HU05) -->
+          <div class="notif-btn-wrap">
+            <button id="btnNotifications" class="btn-icon" title="Notificaciones">
+              🔔
+              <span id="notificationsUnreadBadge" class="unread-badge" style="display: none;">0</span>
+            </button>
+          </div>
+
+          <!-- User Profile & RBAC Dropdown (HU01, HU15) -->
+          <div class="user-profile-menu">
+            <button id="userProfileBtn" class="user-profile-btn" onclick="window.TaskApp.toggleUserDropdown()">
+              <img id="headerUserAvatar" class="avatar-sm" src="" alt="Avatar">
+              <div>
+                <span id="headerUserName" class="user-name-label">Usuario</span>
+                <div id="headerUserRole"></div>
+              </div>
+              <span style="font-size: 0.7rem; color: var(--text-muted);">▼</span>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div id="userDropdownMenu" class="user-dropdown-menu">
+              <div class="dropdown-header">
+                <span class="dropdown-header-title">Cambio Rápido de Rol (HU15)</span>
+              </div>
+              <button class="dropdown-item" onclick="window.TaskApp.quickSwitchUser('usr-1')">
+                👑 <span>Sofía (Administrador)</span>
+              </button>
+              <button class="dropdown-item" onclick="window.TaskApp.quickSwitchUser('usr-2')">
+                💼 <span>Carlos (Gestor Proyecto)</span>
+              </button>
+              <button class="dropdown-item" onclick="window.TaskApp.quickSwitchUser('usr-3')">
+                💻 <span>Ana (Desarrollador)</span>
+              </button>
+              <button class="dropdown-item" onclick="window.TaskApp.quickSwitchUser('usr-5')">
+                👁️ <span>Marcos (Observador)</span>
+              </button>
+              <div class="dropdown-divider"></div>
+              <button class="dropdown-item" onclick="window.authManager.openAuthModal()">
+                🔑 <span data-i18n="login">Iniciar / Registrar</span>
+              </button>
+              <button class="dropdown-item" onclick="window.authManager.logout()">
+                🚪 <span data-i18n="logout">Cerrar Sesión</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Advanced Filters & Search Toolbar (HU04) -->
+      <section id="filtersSection" class="filters-toolbar">
+        <!-- Live Search Box -->
+        <div class="search-box-wrap">
+          <span class="search-icon">🔍</span>
+          <input 
+            type="text" 
+            id="searchQuery" 
+            class="search-input" 
+            placeholder="Buscar por título, etiquetas o persona..."
+            data-i18n-placeholder="searchPlaceholder"
+          >
+        </div>
+
+        <div class="filters-group">
+          <!-- Priority Filter (HU16) -->
+          <select id="filterPriority" class="filter-select">
+            <option value="all">Todas las Prioridades</option>
+            <option value="urgent">🔥 Urgente</option>
+            <option value="high">🔺 Alta</option>
+            <option value="medium">🔹 Media</option>
+            <option value="low">🟢 Baja</option>
+          </select>
+
+          <!-- Status Filter -->
+          <select id="filterStatus" class="filter-select">
+            <option value="all">Todos los Estados</option>
+            <option value="todo">📋 Por Hacer</option>
+            <option value="in_progress">⏳ En Progreso</option>
+            <option value="review">🔍 En Revisión</option>
+            <option value="done">✅ Completado</option>
+          </select>
+
+          <!-- Assignee Filter (HU03) -->
+          <select id="filterAssignee" class="filter-select">
+            <option value="all">Todos los Asignados</option>
+            <option value="unassigned">👤 Sin Asignar</option>
+          </select>
+
+          <!-- Tag Filter (HU07) -->
+          <select id="filterTag" class="filter-select">
+            <option value="all">Todas las Etiquetas</option>
+          </select>
+
+          <!-- Date Filter -->
+          <select id="filterDate" class="filter-select">
+            <option value="all">Cualquier Fecha</option>
+            <option value="overdue">⚠️ Vencidas</option>
+            <option value="today">📅 Para Hoy</option>
+            <option value="this_week">🗓️ Esta Semana</option>
+            <option value="no_date">⚪ Sin Fecha</option>
+          </select>
+
+          <!-- Sort Select -->
+          <select id="sortBy" class="filter-select">
+            <option value="created_desc">Más recientes primero</option>
+            <option value="priority_desc">Prioridad (Mayor a menor)</option>
+            <option value="dueDate_asc">Fecha de Vencimiento</option>
+            <option value="title_asc">Título (A-Z)</option>
+          </select>
+
+          <!-- Clear Filters Button -->
+          <button id="btnClearFilters" class="btn btn-secondary btn-sm" style="display: none;">
+            <span>✕</span> <span data-i18n="clearFilters">Limpiar</span>
+            <span id="activeFilterCountBadge" class="badge badge-default">0</span>
+          </button>
+        </div>
+
+        <div id="tasksCountDisplay" class="filter-counter-info">
+          Cargando tareas...
+        </div>
+      </section>
+
+      <!-- App Views Container -->
+      <div class="app-content">
+        <!-- 1. KANBAN BOARD VIEW (HU02) -->
+        <div id="kanbanView" class="kanban-board">
+          <!-- Column: Por Hacer -->
+          <div class="kanban-column" data-status="todo">
+            <div class="kanban-column-header">
+              <div class="kanban-column-title">
+                <span>📋</span> <span data-i18n="colTodo">Por Hacer</span>
+                <span id="countBadge-todo" class="column-badge">0</span>
+              </div>
+              <button class="btn-icon-sm" title="Añadir tarea aquí" onclick="window.TaskApp.openTaskModal(null, 'todo')">➕</button>
+            </div>
+            <div id="kanbanCol-todo" class="kanban-cards-container"></div>
+            <div class="kanban-column-footer">
+              <button class="btn btn-secondary btn-sm btn-block" onclick="window.TaskApp.openTaskModal(null, 'todo')">
+                + Añadir Tarea
+              </button>
+            </div>
+          </div>
+
+          <!-- Column: En Progreso -->
+          <div class="kanban-column" data-status="in_progress">
+            <div class="kanban-column-header">
+              <div class="kanban-column-title">
+                <span>⏳</span> <span data-i18n="colInProgress">En Progreso</span>
+                <span id="countBadge-in_progress" class="column-badge">0</span>
+              </div>
+              <button class="btn-icon-sm" title="Añadir tarea aquí" onclick="window.TaskApp.openTaskModal(null, 'in_progress')">➕</button>
+            </div>
+            <div id="kanbanCol-in_progress" class="kanban-cards-container"></div>
+            <div class="kanban-column-footer">
+              <button class="btn btn-secondary btn-sm btn-block" onclick="window.TaskApp.openTaskModal(null, 'in_progress')">
+                + Añadir Tarea
+              </button>
+            </div>
+          </div>
+
+          <!-- Column: En Revisión -->
+          <div class="kanban-column" data-status="review">
+            <div class="kanban-column-header">
+              <div class="kanban-column-title">
+                <span>🔍</span> <span data-i18n="colReview">En Revisión</span>
+                <span id="countBadge-review" class="column-badge">0</span>
+              </div>
+              <button class="btn-icon-sm" title="Añadir tarea aquí" onclick="window.TaskApp.openTaskModal(null, 'review')">➕</button>
+            </div>
+            <div id="kanbanCol-review" class="kanban-cards-container"></div>
+            <div class="kanban-column-footer">
+              <button class="btn btn-secondary btn-sm btn-block" onclick="window.TaskApp.openTaskModal(null, 'review')">
+                + Añadir Tarea
+              </button>
+            </div>
+          </div>
+
+          <!-- Column: Completado -->
+          <div class="kanban-column" data-status="done">
+            <div class="kanban-column-header">
+              <div class="kanban-column-title">
+                <span>✅</span> <span data-i18n="colDone">Completado</span>
+                <span id="countBadge-done" class="column-badge">0</span>
+              </div>
+              <button class="btn-icon-sm" title="Añadir tarea aquí" onclick="window.TaskApp.openTaskModal(null, 'done')">➕</button>
+            </div>
+            <div id="kanbanCol-done" class="kanban-cards-container"></div>
+            <div class="kanban-column-footer">
+              <button class="btn btn-secondary btn-sm btn-block" onclick="window.TaskApp.openTaskModal(null, 'done')">
+                + Añadir Tarea
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. DASHBOARD & METRICS VIEW (HU13) -->
+        <div id="dashboardView" style="display: none;"></div>
+
+        <!-- 3. LIST VIEW -->
+        <div id="listView" style="display: none;"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Notifications Drawer (HU05: Notificaciones y simulador de correo) -->
+  <aside id="notificationsDrawer" class="notifications-drawer">
+    <div class="notif-drawer-header">
+      <h3 data-i18n="notificationsTitle">Centro de Notificaciones</h3>
+      <button class="btn-icon" onclick="window.TaskApp.toggleNotificationsDrawer()">✕</button>
+    </div>
+    <div id="notificationsList" class="notif-drawer-body">
+      <!-- Dynamic list -->
+    </div>
+  </aside>
+
+  <!-- Container for Simulated Email Popups (HU05) -->
+  <div id="emailToastContainer"></div>
+
+  <!-- Toast Alerts Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- Modal: Crear / Editar Tarea (HU03, HU06, HU07, HU08, HU10, HU16) -->
+  <div id="taskModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="taskModalTitle" class="modal-title">Nueva Tarea</h3>
+        <button class="btn-icon" onclick="window.TaskApp.closeTaskModal()">✕</button>
+      </div>
+
+      <form id="taskForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="taskTitle" data-i18n="taskTitle">Título de la Tarea</label>
+            <input type="text" id="taskTitle" class="form-control" required placeholder="Ej: Implementar pasarela de pagos">
+          </div>
+
+          <div class="form-group">
+            <label for="taskDesc" data-i18n="taskDesc">Descripción</label>
+            <textarea id="taskDesc" class="form-control" placeholder="Detalles, criterios de aceptación, endpoints..."></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="taskPriority" data-i18n="priority">Prioridad (HU16)</label>
+              <select id="taskPriority" class="form-control">
+                <option value="urgent">🔥 Urgente (Crítica)</option>
+                <option value="high">🔺 Alta</option>
+                <option value="medium" selected>🔹 Media</option>
+                <option value="low">🟢 Baja</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="taskStatus">Estado</label>
+              <select id="taskStatus" class="form-control">
+                <option value="todo">📋 Por Hacer</option>
+                <option value="in_progress">⏳ En Progreso</option>
+                <option value="review">🔍 En Revisión</option>
+                <option value="done">✅ Completado</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="taskAssignee" data-i18n="assignee">Asignado a (HU03)</label>
+              <select id="taskAssignee" class="form-control">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="taskDueDate" data-i18n="dueDate">Fecha de Vencimiento</label>
+              <input type="date" id="taskDueDate" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="taskTags" data-i18n="tags">Etiquetas (separadas por coma) (HU07)</label>
+              <input type="text" id="taskTags" class="form-control" placeholder="Frontend, Bug, API, UI/UX">
+            </div>
+
+            <div class="form-group">
+              <label for="taskHours" data-i18n="estimatedHours">Horas Estimadas</label>
+              <input type="number" id="taskHours" class="form-control" placeholder="Ej: 8" min="0">
+            </div>
+          </div>
+
+          <!-- Calendar Integration (HU08) -->
+          <div id="taskCalendarSection" class="calendar-integration-box" style="display: none;">
+            <div>
+              <strong>📅 Integración con Calendario (HU08)</strong>
+              <small class="text-muted" style="display: block;">Sincroniza esta entrega con tu agenda de Google o exporta a iCal.</small>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="window.TaskApp.addCurrentTaskToCalendar()">
+                Google Calendar
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="window.TaskApp.downloadCurrentTaskIcs()">
+                Descargar .ICS
+              </button>
+            </div>
+          </div>
+
+          <!-- Attachments (HU10) -->
+          <div id="taskAttachmentsSection" class="attachments-container" style="display: none;">
+            <label style="font-weight: 600; font-size: 0.8rem; margin-bottom: 8px; display: block;" data-i18n="attachments">
+              Archivos Adjuntos (HU10)
+            </label>
+            <div id="attachmentsList" class="attachments-list"></div>
+            <input type="file" id="taskAttachmentInput" style="font-size: 0.8rem;">
+          </div>
+
+          <!-- Comments (HU06) -->
+          <div id="taskCommentsSection" class="comments-container" style="display: none;">
+            <label style="font-weight: 600; font-size: 0.8rem; margin-bottom: 8px; display: block;" data-i18n="comments">
+              Comentarios y Discusión (HU06)
+            </label>
+            <div id="commentsList" class="comments-list"></div>
+            <div class="comment-form">
+              <input type="text" id="commentInput" class="form-control" placeholder="Escribe un comentario..." data-i18n-placeholder="writeComment" onkeydown="if(event.key === 'Enter'){ event.preventDefault(); window.TaskApp.handleCommentSubmit(event); }">
+              <button type="button" class="btn btn-primary btn-sm" onclick="window.TaskApp.handleCommentSubmit(event)">Enviar</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="window.TaskApp.closeTaskModal()" data-i18n="cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary" data-i18n="save">Guardar Tarea</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Crear / Editar Proyecto (HU11) -->
+  <div id="projectModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title" data-i18n="newProject">Nuevo Proyecto (HU11)</h3>
+        <button class="btn-icon" onclick="window.TaskApp.closeProjectModal()">✕</button>
+      </div>
+      <form id="projectForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="projectName" data-i18n="projectName">Nombre del Proyecto</label>
+            <input type="text" id="projectName" class="form-control" required placeholder="Ej: Rediseño App Móvil">
+          </div>
+          <div class="form-group">
+            <label for="projectDesc" data-i18n="projectDesc">Descripción</label>
+            <textarea id="projectDesc" class="form-control" placeholder="Objetivos y alcance del proyecto..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="projectIcon">Ícono / Emoji</label>
+              <input type="text" id="projectIcon" class="form-control" value="🚀" maxlength="2">
+            </div>
+            <div class="form-group">
+              <label for="projectColor">Color Tema</label>
+              <input type="color" id="projectColor" class="form-control" value="#6366f1" style="height: 38px; padding: 2px;">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="projectTargetDate" data-i18n="projectTargetDate">Fecha Objetivo</label>
+            <input type="date" id="projectTargetDate" class="form-control">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="window.TaskApp.closeProjectModal()" data-i18n="cancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary" data-i18n="create">Crear Proyecto</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Gestión de Roles y Permisos (HU15) -->
+  <div id="rolesModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 class="modal-title">🛡️ Gestión de Roles y Permisos (HU15)</h3>
+        <button class="btn-icon" onclick="window.TaskApp.closeRolesModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-sm text-secondary">
+          Como <strong>Administrador</strong>, puedes modificar los roles asignados a cada usuario. Los cambios impactan los permisos de edición, creación y borrado en tiempo real.
+        </p>
+        <table class="list-table">
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Rol Asignado</th>
+              <th>Membresía</th>
+            </tr>
+          </thead>
+          <tbody id="rolesUsersTableBody">
+            <!-- Dynamic rows -->
+          </tbody>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="window.TaskApp.closeRolesModal()">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Autenticación y Registro (HU01) -->
+  <div id="authModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="modal-title">🔑 Acceso y Registro de Usuarios (HU01)</h3>
+        <button class="btn-icon" onclick="window.authManager.closeAuthModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- Quick Demo Switcher -->
+        <div style="background-color: var(--bg-hover); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 12px;">
+          <strong style="font-size: 0.8rem; display: block; margin-bottom: 6px;">⚡ Acceso Rápido Demo (1 clic):</strong>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <button class="btn btn-secondary btn-sm" onclick="window.TaskApp.quickSwitchUser('usr-1'); window.authManager.closeAuthModal();">
+              👑 Sofía (Admin)
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="window.TaskApp.quickSwitchUser('usr-2'); window.authManager.closeAuthModal();">
+              💼 Carlos (Gestor)
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="window.TaskApp.quickSwitchUser('usr-3'); window.authManager.closeAuthModal();">
+              💻 Ana (Dev)
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="window.TaskApp.quickSwitchUser('usr-5'); window.authManager.closeAuthModal();">
+              👁️ Marcos (Observador)
+            </button>
+          </div>
+        </div>
+
+        <form id="registerForm" onsubmit="event.preventDefault(); const res = window.authManager.register(this.regName.value, this.regEmail.value, this.regPass.value, this.regRole.value); if(res.success){ window.authManager.closeAuthModal(); window.TaskApp.render(); } else { window.TaskApp.showToast(res.message, 'warning'); }">
+          <div class="form-group">
+            <label>Registrar Nuevo Usuario</label>
+            <input type="text" name="regName" class="form-control" placeholder="Nombre completo" required>
+          </div>
+          <div class="form-group">
+            <input type="email" name="regEmail" class="form-control" placeholder="correo@ejemplo.com" required>
+          </div>
+          <div class="form-group">
+            <input type="password" name="regPass" class="form-control" placeholder="Contraseña" required>
+          </div>
+          <div class="form-group">
+            <label>Rol Inicial (HU15)</label>
+            <select name="regRole" class="form-control">
+              <option value="developer">💻 Desarrollador</option>
+              <option value="manager">💼 Gestor de Proyecto</option>
+              <option value="admin">👑 Administrador</option>
+              <option value="viewer">👁️ Observador</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" style="margin-top: 10px;">Crear Cuenta e Iniciar Sesión</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Planes y Pagos Premium (HU20) -->
+  <div id="premiumModal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3 class="modal-title">⭐ Suscripción TaskFlow Pro Premium (HU20)</h3>
+        <button class="btn-icon" onclick="window.premiumManager.closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="pricing-grid">
+          <div class="pricing-card">
+            <span class="pricing-title">Plan Gratuito</span>
+            <div class="pricing-price">$0</div>
+            <ul class="pricing-features">
+              <li>✓ Hasta 3 proyectos</li>
+              <li>✓ Tablero Kanban básico</li>
+              <li>✓ Filtros estándar</li>
+            </ul>
+          </div>
+          <div class="pricing-card featured">
+            <span class="pricing-title">Plan Pro ⭐</span>
+            <div class="pricing-price">$9 <small>/ mes</small></div>
+            <ul class="pricing-features">
+              <li>✓ <strong>Proyectos ilimitados</strong></li>
+              <li>✓ <strong>Métricas y Dashboard avanzado</strong></li>
+              <li>✓ <strong>Exportación a Excel / CSV</strong></li>
+              <li>✓ <strong>Insignia dorada VIP</strong></li>
+            </ul>
+          </div>
+        </div>
+
+        <form onsubmit="window.premiumManager.processPayment(event)">
+          <div class="form-group">
+            <label>Titular de la Tarjeta</label>
+            <input type="text" class="form-control" placeholder="Nombre completo" required value="Sofía Admin">
+          </div>
+          <div class="form-group">
+            <label>Número de Tarjeta Simulado</label>
+            <input type="text" class="form-control" placeholder="4242 •••• •••• 4242" required value="4242 4242 4242 4242">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Vencimiento</label>
+              <input type="text" class="form-control" placeholder="MM/AA" required value="12/28">
+            </div>
+            <div class="form-group">
+              <label>CVC</label>
+              <input type="text" class="form-control" placeholder="123" required value="789">
+            </div>
+          </div>
+          <button type="submit" id="btnPaySubmit" class="btn btn-success btn-block" style="margin-top: 14px;">
+            💳 Pagar $9.00 USD / Mes (Simulación)
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts in dependency order -->
+  <script src="js/data.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/projects.js"></script>
+  <script src="js/tasks.js"></script>
+  <script src="js/filters.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/export.js"></script>
+  <script src="js/tutorial.js"></script>
+  <script src="js/premium.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
